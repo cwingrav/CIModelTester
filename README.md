@@ -29,4 +29,4 @@ It sends an Ajax call to ModelTester->model_test and returns the results in JSON
 
 ## Security Concerns
 
-!GOOD HEAVENS YES! This is like handing the keys to your application to anyone that finds this controller. DON'T PUT INTO PRODUCTION CODE!
+!GOOD HEAVENS YES! This is like handing the keys to your application to anyone that finds this controller. DON'T PUT INTO PRODUCTION CODE! To mitigate this risk, it does not function if you set your CodeIgniter project state to anything other than 'development' and you can turn it off by setting the second parameter to ModelTester to be false.
