@@ -2,7 +2,8 @@
 A CodeIgniter interactive model tester web interface. Directly call your model functionality for testing and debugging.
 
 ## Usage
-After installed, you 
+Load your controller into your browser: http://<mydomain>/index.php/MyModelTester
+
 
 ## Installation
 * Copy modeltester.php into your CodeIgnite 'libraries' folder. 
