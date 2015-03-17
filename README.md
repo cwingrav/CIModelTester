@@ -2,7 +2,11 @@
 A CodeIgniter interactive model tester web interface. Directly call your model functionality for testing and debugging.
 
 ## Usage
-Load your controller into your browser: `http://<mydomain>/index.php/MyModelTester`. Then, click on a model and then enter parameters to pass to a method. NOTE: If you use proper code documentation, it even prints to comments!
+Load your controller into your browser: `http://<mydomain>/index.php/MyModelTester`. Then, click on a model and then enter parameters to pass to a method.  In the image below, there are two parameters to the method `toggleUserApp` in model `RecData_model`.
+
+<img src='imgs/amethod.png' width='300px' />
+
+NOTE: If you use proper code documentation, it even prints to comments!
 
 
 ## Installation
@@ -17,3 +21,12 @@ class MyModelTester extends ModelTester {
 ?>
 ```
 * That's it!
+
+
+## How it works?
+
+It sends an Ajax call to ModelTester->model_test and returns the results in JSON to your page. Nifty.
+
+## Security Concerns
+
+!GOOD HEAVENS YES! This is like handing the keys to your application to anyone that finds this controller. DON'T PUT INTO PRODUCTION CODE!
