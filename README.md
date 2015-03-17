@@ -3,9 +3,11 @@ A CodeIgniter interactive model tester web interface. Directly call your model f
 
 ## Usage
 Load your controller into your browser: `http://<mydomain>/index.php/MyModelTester`. You'll see the main ModelTester page.
+
 <img src='imgs/mainpage.png' width='300px' />
 
 Then, click on a model to see the model page. 
+
 <img src='imgs/modelpage.png' width='300px' />
 
 From here, type parameters into the fields to pass data to a method.  In the image below, there are two parameters to the method `toggleUserApp` in model `RecData_model`.
