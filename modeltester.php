@@ -40,7 +40,7 @@ class ModelTester extends CI_Controller {
 			$bod .= "</div>";
 		} else {
 			$bod = "<div>Your ModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
-		$this->pdata["title"] = 'Model Tester';
+		$this->pdata["title"] = 'Main Page';
 		$this->pdata["body"] = $bod;
 		echo $this->applyTemplate();
 
@@ -148,7 +148,7 @@ class ModelTester extends CI_Controller {
 		} else {
 			$bod = "<div>Your ModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
 
-		$this->pdata["title"] = $_model;//'Adder Model';
+		$this->pdata["title"] = "Model ".$_model;//'Adder Model';
 		$this->pdata["body"] = $mtext;
 		echo $this->applyTemplate();
     }
