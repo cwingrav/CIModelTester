@@ -1,7 +1,7 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
 
-class ModelTester extends CI_Controller {
+class CIModelTester extends CI_Controller {
 
     public function __construct($_mymodels,$_isvalid = true) {
         parent::__construct();
@@ -40,7 +40,7 @@ class ModelTester extends CI_Controller {
 			}
 			$bod .= "</div>";
 		} else {
-			$bod = "<div>Your ModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
+			$bod = "<div>Your CIModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
 		$this->pdata["title"] = 'Main Page';
 		$this->pdata["body"] = $bod;
 		echo $this->applyTemplate();
@@ -147,7 +147,7 @@ class ModelTester extends CI_Controller {
 
 
 		} else {
-			$bod = "<div>Your ModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
+			$bod = "<div>Your CIModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
 
 		$this->pdata["title"] = "Model ".$_model;//'Adder Model';
 		$this->pdata["body"] = $mtext;
@@ -179,7 +179,7 @@ class ModelTester extends CI_Controller {
 			"<head>".
 			"	<meta charset='utf-8'>".
 			"	<meta name='viewport' content='width=device-width, initial-scale=1' > ".
-			"	<title>Model Tester: ".$this->pdata['title']."</title>".
+			"	<title>CIModelTester: ".$this->pdata['title']."</title>".
 			"	<script type='text/javascript' src='//code.jquery.com/jquery-2.1.3.min.js'></script>".
 			"	<link rel='stylesheet' href='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css' />".
 			"	<script type='text/javascript' src='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js'></script>".
@@ -187,9 +187,9 @@ class ModelTester extends CI_Controller {
 			"</head>".
 			"<body>".
 			"<div class='container'>".
-			"	<div class='row'><div class='col-md-12'><h1>Model Tester: ".$this->pdata['title']."</h1></div></div>".
+			"	<div class='row'><div class='col-md-12'><h1>CIModelTester: ".$this->pdata['title']."</h1></div></div>".
 			"	".$this->pdata['body']."".
-			"   <div class='row well'><div class='col-md-12'><small>A <a href='http://conquestcreations.com'>Conquest Creations</a> product. Find the <a href='https://github.com/cwingrav/ModelTester'>Github repo for ModelTester here.</a> </small></div></div>".
+			"   <div class='row well'><div class='col-md-12'><small>A <a href='http://conquestcreations.com'>Conquest Creations</a> product. Find the <a href='https://github.com/cwingrav/CIModelTester'>Github repo for CIModelTester here.</a> </small></div></div>".
 			"</body>".
 			"</html>";
 		return $retval;
