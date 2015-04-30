@@ -1,5 +1,7 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 
+function _cmp_methods($a, $b)
+{ if ($a->name == $b->name) { return 0; } return ($a->name < $b->name) ? -1 : 1; }
 
 class CIModelTester extends CI_Controller {
 
@@ -91,6 +93,9 @@ class CIModelTester extends CI_Controller {
 		}
         exit(1);
     }
+
+
+
     public function model($_model)
     {
 		$model = implode('/', func_get_args());
@@ -98,6 +103,7 @@ class CIModelTester extends CI_Controller {
 		if ( $this->isvalid ) {
 			$rc = new ReflectionClass(end(explode('/',$model)));
 			$methods = $rc->getMethods();
+			$smethods = $methods; usort($smethods, "_cmp_methods");
 
 			// Add navigation
 			$mtext   =  "<div class='row well'>".
@@ -118,7 +124,7 @@ class CIModelTester extends CI_Controller {
 			// public
 			$mtext .= "<div class=''><strong>public</strong></div>\n";
 			$mtext .= "<div class='row'>\n";
-			foreach ($methods as $m ) {
+			foreach ($smethods as $m ) {
 				if ( ! $m->isConstructor() && $m->isPublic() ) {
 					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
 			$mtext .= "</div>\n";
@@ -126,7 +132,7 @@ class CIModelTester extends CI_Controller {
 			// protected
 			$mtext .= "<div class=''><strong>protected</strong></div>\n";
 			$mtext .= "<div class='row'>\n";
-			foreach ($methods as $m ) {
+			foreach ($smethods as $m ) {
 				if ( ! $m->isConstructor() && $m->isProtected() ) {
 					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
 			$mtext .= "</div>\n";
@@ -134,7 +140,7 @@ class CIModelTester extends CI_Controller {
 			// all else 
 			$mtext .= "<div class=''><strong>all others</strong></div>\n";
 			$mtext .= "<div class='row'>\n";
-			foreach ($methods as $m ) {
+			foreach ($smethods as $m ) {
 				if ( ! $m->isConstructor() && !($m->isProtected() || $m->isPublic()) ) {
 					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
 			$mtext .= "</div>\n";
