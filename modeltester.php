@@ -7,7 +7,7 @@ class CIModelTester extends CI_Controller {
         parent::__construct();
 
 		$this->isvalid = false;
-		if ( ENVIRONMENT == 'development' ) {
+		if ( ENVIRONMENT == 'development' || ENVIRONMENT =='testing' ) {
 			$this->isvalid = $_isvalid;
 			$this->load->library('session');
 			$this->load->helper('form');
@@ -54,7 +54,7 @@ class CIModelTester extends CI_Controller {
 			$pss = array(); // push all params into $pss array
 			$fail = false;
 			$fn= $_POST['fn'];
-			$model = $_POST['model'];
+			$model = end(explode('/',$_POST['model']));
 			foreach($_POST as $k=>$v) {
 				log_message("debug","check POST for param ".$k." ".$v);
 				// add params based upon order
@@ -75,13 +75,14 @@ class CIModelTester extends CI_Controller {
 				$content = ob_get_clean();
 				ob_end_clean();
 				log_message("debug","content is ".$content);
-				if  ( $ret === FALSE ) {
-					log_message("debug","ret failed");
-					$ret = array( "msg"     => "ERROR: failed, see log file.");
-				} else if ( $content != "" ) {
+				if ( $content != "" ) {
 					log_message("debug","ERROR: there was output from your model: '".$content."'\n");
 					$ret = array( "msg"     => "ERROR: there was output in your model.",
 								  "content" => $content );
+				} else if  ( $ret === FALSE ) {
+					log_message("debug","ret failed");
+					$ret = "FALSE";
+					//$ret = array( "msg"     => "ERROR: function failed, see log file.");
 				} else { 
 					log_message('debug','json is: "'.json_encode($ret).'"');
 				}
@@ -92,35 +93,69 @@ class CIModelTester extends CI_Controller {
     }
     public function model($_model)
     {
+		$model = implode('/', func_get_args());
+		log_message('debug',"model:: ".$model);
 		if ( $this->isvalid ) {
-			$rc = new ReflectionClass($_model);
+			$rc = new ReflectionClass(end(explode('/',$model)));
 			$methods = $rc->getMethods();
 
 			// Add navigation
 			$mtext   =  "<div class='row well'>".
 						"  <a class='btn btn-info btn-xs' href='/index.php/".get_class($this)."'>&lt; back </a>".
-						"  <a href='/index.php/test/Test_".$_model."' class='btn btn-default btn-xs'>run unit tests</a>".
+						"  <a href='/index.php/test/Test_".$model."' class='btn btn-default btn-xs'>run unit tests</a>".
 						"  <div class='btn-group btn-group-xs' role='group' aria-label='Switch Models'>";
 			foreach($this->mymodels as $m ) {
-				$btnt = ($m == $_model? "btn-primary" : "btn-info");
+				$btnt = ($m == $model? "btn-primary" : "btn-info");
 				$mtext .= "    <a class='btn ".$btnt."' href='/index.php/".get_class($this)."/model/".$m."'>".$m."</a>";
 			}
 			$mtext   .= "  </div>".
 						"</div>";
 
+			// Add listing of methods, with in-page links to call
+			$mtext .= "<div class='well'>\n";
+			$mtext .= "<div class='lead'><strong>".$model."</strong> method listings</div>\n";
+
+			// public
+			$mtext .= "<div class=''><strong>public</strong></div>\n";
+			$mtext .= "<div class='row'>\n";
+			foreach ($methods as $m ) {
+				if ( ! $m->isConstructor() && $m->isPublic() ) {
+					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
+			$mtext .= "</div>\n";
+
+			// protected
+			$mtext .= "<div class=''><strong>protected</strong></div>\n";
+			$mtext .= "<div class='row'>\n";
+			foreach ($methods as $m ) {
+				if ( ! $m->isConstructor() && $m->isProtected() ) {
+					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
+			$mtext .= "</div>\n";
+
+			// all else 
+			$mtext .= "<div class=''><strong>all others</strong></div>\n";
+			$mtext .= "<div class='row'>\n";
+			foreach ($methods as $m ) {
+				if ( ! $m->isConstructor() && !($m->isProtected() || $m->isPublic()) ) {
+					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
+			$mtext .= "</div>\n";
+
+			$mtext .= "</div>\n";
+
+			// Add functionality to call each method
 			$mtext .= "<div class='row'>\n";
 			$mid = 1;
 			foreach ($methods as $m ) {
 				if ( ! $m->isConstructor() ) {
-					$mtext .= "\n<div class='col-md-6 well'>";
+					$mtext .= "\n<div class='col-xs-6 col-sm-4 col-md-4 well'>";
+					$mtext .= "<div id='method_".$m->name."'><a name='method_".$m->name."'></a></div>";
 					$mtext .= "<form id='form".$mid."'>";
 					$mtext .= "<p><small>".$rc->name."-></small></p>";
 					$mtext .= "<fieldset><legend>".$m->name."</legend>";
 					//$mtext .= "<div class='lead'>".$m->name."</div>";
 					$mtext .= "<input type='hidden' name='fn' value='".$m->name."' ></input>";
-					$mtext .= "<input type='hidden' name='model' value='".$_model."' ></input>";
+					$mtext .= "<input type='hidden' name='model' value='".$model."' ></input>";
 					$dc = $m->getDocComment();
-					if ( $dc !== FALSE ) { $mtext .= "<div><pre><code style='font-size: 60%; line-height: 0px;'>".$dc."</code></pre></div>"; }
+					if ( $dc !== FALSE ) { $mtext .= "<div style=''><pre><code style='font-size: 60%; line-height: 0px;'>".$dc."</code></pre></div>"; }
 					//log_message("debug",print_r($m->getDocComment(),true));
 					$np=0;
 					$mtext .= "<dl class=''>";
@@ -143,13 +178,13 @@ class CIModelTester extends CI_Controller {
 				}
 			}
 
-			$mtext .= "</div>";
+			$mtext .= "</div>\n";
 
 
 		} else {
 			$bod = "<div>Your CIModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
 
-		$this->pdata["title"] = "Model ".$_model;//'Adder Model';
+		$this->pdata["title"] = "Model ".$model;//'Adder Model';
 		$this->pdata["body"] = $mtext;
 		echo $this->applyTemplate();
     }
@@ -159,6 +194,8 @@ class CIModelTester extends CI_Controller {
 			"function callModelTest(_d,_fn) {".
 			"	var fn = _fn;".
 			"	console.log('callModelTest called with url \"'+_d['url']+'\"');".
+			"	$('#'+fn+'_output pre').html('<div>calling</div>');".
+			"	$('#'+fn+'_output').removeClass('hide');".
 			"	_d['type'] = 'post';".
 			"	$.ajax(_d)".
 			"	.error(function(_data) {".
