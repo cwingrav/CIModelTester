@@ -5,8 +5,10 @@ function _cmp_methods($a, $b)
 
 class CIModelTester extends CI_Controller {
 
-    public function __construct($_mymodels,$_isvalid = true) {
+    public function __construct($_mymodels,$_testinglink = null,$_isvalid = true) {
         parent::__construct();
+
+		$this->testinglink = $_testinglink;
 
 		$this->isvalid = false;
 		if ( ENVIRONMENT == 'development' || ENVIRONMENT =='testing' ) {
@@ -33,6 +35,9 @@ class CIModelTester extends CI_Controller {
 		if ( $this->isvalid ) {
 			$bod  = "";
 			$bod .= "<div style='width:90%; margin: 10px;'>A CodeIgniter interactive model tester web interface. Directly call your model functionality for testing and debugging.</div>";
+			if ( $this->testinglink != null ) {
+				$bod .= "<div style='margin-bottom: 7px;'><a class='btn btn-info' href='".$this->testinglink."'>testing link</a></div>";
+			}
 			$bod .= "<div class='row well'>";
 			foreach( $this->mymodels as $m ) {
 				$bod .= "<div class='col-md-3 well'>";
@@ -107,9 +112,11 @@ class CIModelTester extends CI_Controller {
 
 			// Add navigation
 			$mtext   =  "<div class='row well'>".
-						"  <a class='btn btn-info btn-xs' href='/index.php/".get_class($this)."'>&lt; back </a>".
-						"  <a href='/index.php/test/Test_".$model."' class='btn btn-default btn-xs'>run unit tests</a>".
-						"  <div class='btn-group btn-group-xs' role='group' aria-label='Switch Models'>";
+						"  <a class='btn btn-info btn-xs' href='/index.php/".get_class($this)."'>&lt; back </a>";
+			if ( $this->testinglink != null ) {
+						$mtext .= "  <a href='".$this->testinglink."' class='btn btn-info btn-xs'>run tests</a>";
+			}
+			$mtext .=   "  <div class='btn-group btn-group-xs' role='group' aria-label='Switch Models'>";
 			foreach($this->mymodels as $m ) {
 				$btnt = ($m == $model? "btn-primary" : "btn-info");
 				$mtext .= "    <a class='btn ".$btnt."' href='/index.php/".get_class($this)."/model/".$m."'>".$m."</a>";
@@ -172,6 +179,7 @@ class CIModelTester extends CI_Controller {
 					}
 					$mtext .= "</dl>";
 					$mtext .= "<input name='btn_submit' type='submit' class='btn btn-default' value='Submit' />\n";
+					$mtext .= "<a class='btn btn-default btn-sm' href='javascript:toggleResult(\"#".$m->name."_output\")'>toggle</a>\n";
 					$mtext .= "<div class='hide' id='".$m->name."_output'><pre></pre></div>";
 					$mtext .= "<script>$('#form".$mid."').submit(function(_e) { ".
 							  "   var data = $(this).serializeArray(); ".
@@ -215,7 +223,11 @@ class CIModelTester extends CI_Controller {
 			"		$('#'+fn+'_output pre').html(''+JSON.stringify(ff, null, ' ')+'');".
 			"		$('#'+fn+'_output').removeClass('hide');".
 			"	});".
-			"}";
+			"}".
+			"function toggleResult(_id) {\n".
+			"  $(_id).toggle();\n".
+			"}\n";
+
 		$retval= 
 			"<!DOCTYPE html>".
 			"<html lang='en'>".
@@ -226,7 +238,7 @@ class CIModelTester extends CI_Controller {
 			"	<script type='text/javascript' src='//code.jquery.com/jquery-2.1.3.min.js'></script>".
 			"	<link rel='stylesheet' href='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css' />".
 			"	<script type='text/javascript' src='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js'></script>".
-			"   <script type='text/javascript'>".$js."</script>".
+			"   <script type='text/javascript'>\n".$js."\n</script>".
 			"</head>".
 			"<body>".
 			"<div class='container'>".
