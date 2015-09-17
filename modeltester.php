@@ -40,7 +40,7 @@ class CIModelTester extends CI_Controller {
 			}
 			$bod .= "<div class='row well'>";
 			foreach( $this->mymodels as $m ) {
-				$bod .= "<div class='col-md-3 well'>";
+				$bod .= "<div class='col-xs-6 col-sm-4 col-md-3 well'>";
 				$bod .= "  <div class='lead'><a href='/index.php/".get_class($this)."/model/".$m."'>".$m."</a></div>";
 				$bod .= "  <div><a href='/index.php/test/Test_".$m."' class='btn btn-default'>run unit tests</a></div>";
 				$bod .= "</div>";
