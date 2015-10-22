@@ -38,7 +38,7 @@ You can write CodeIngniter unit tests for your models and run them via this inte
 ### Testing Methods Run
 This runs a generic test and searches for method-specific tests.
 * test()
-* test_[method]()
+* test_\[method\]()
 
 ## How it works?
 
