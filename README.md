@@ -46,8 +46,6 @@ It sends an Ajax call to CIModelTester->model_test and returns the results in JS
 
 ## Security Concerns
 
-!GOOD HEAVENS YES! This is like handing the keys to your application to anyone that finds this controller. DON'T PUT INTO PRODUCTION CODE! To mitigate this risk, it does not function if you set your CodeIgniter project state to anything other than 'development' and you can turn it off by setting the second parameter to CIModelTester to be false.
+!GOOD HEAVENS YES! This is like handing the keys to your application to anyone that finds this controller. DON'T PUT INTO PRODUCTION CODE! To mitigate this risk, it does not function if you set your CodeIgniter project state to anything other than 'development' or 'testing' and you can turn it off by setting the second parameter to CIModelTester to be false.
 
-## What's with the 'Unit Tests'?
-
-I have unit tests per model. I use Toast to do this. Either ignore those links and buttons, or create some unit tests.
+Also, for unit tests, only runs in 'testing' environment.
