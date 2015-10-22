@@ -116,6 +116,7 @@ class CIModelTester extends CI_Controller {
 			if ( $this->testinglink != null ) {
 						$mtext .= "  <a href='".$this->testinglink."' class='btn btn-info btn-xs'>run tests</a>";
 			}
+			$mtext .=   "  <a href='/index.php/".get_class($this)."/run_unit_tests/".$model."' class='btn btn-info btn-xs' >run unit tests</a>";
 			$mtext .=   "  <div class='btn-group btn-group-xs' role='group' aria-label='Switch Models'>";
 			foreach($this->mymodels as $m ) {
 				$btnt = ($m == $model? "btn-primary" : "btn-info");
@@ -202,6 +203,84 @@ class CIModelTester extends CI_Controller {
 		$this->pdata["body"] = $mtext;
 		echo $this->applyTemplate();
     }
+
+	// Call the test method on the model
+	public function run_unit_tests($_model) {
+		$bod = "";
+		$bod .= "<a class='btn btn-info btn-xs' href='/index.php/MyModelTester/model/".$_model."'>&lt; back </a>";
+		if ( ENVIRONMENT != "testing" ) {
+			$bod .= "<div class='lead'>Not in testing environment. Currently set to ".ENVIRONMENT.".</div>";
+		} else if( ! file_exists(APPPATH."models/tests/test_$_model.php") ){
+			$bod .= "<div class='lead'>No testing model. create a model in '".APPPATH."models/tests/test_$_model.php'</div>";
+			$bod .= "<h3>Example Code:</h3>";
+			$bod .= "<pre><code>".
+"&lt;?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');\n".
+"\n".
+"class test_".$_model." extends ".$_model."\n".
+"{\n".
+"    function __construct() { parent::__construct(); }\n".
+"\n".
+"    // Generic Model tests\n".
+"    public function test() {\n".
+"        \$this->unit->run(1,1,'Is One One');\n".
+"        return \$retval;\n".
+"    }\n".
+"\n".
+"    // Tests specific to a method\n".
+"    public function test_[YOUR METHOD]() {\n".
+"        \$this->unit->run(1,1,'Is One One');\n".
+"        return \$retval;\n".
+"    }\n".
+"};\n".
+"</pre></code>";
+		} else {
+			$this->load->library("unit_test");
+			$rp = $this->load->model("tests/test_".$_model);
+
+			// generic test
+			$bod .= "<h3>Generic Test</h3>\n";
+			$this->{"test_".$_model}->test();
+			$bod .= "<div class='container'>".$this->unit->report()."</div>";
+			$this->unit->results = array();
+
+			$rc = new ReflectionClass(end(explode('/',"test_".$_model)));
+			$methods = $rc->getMethods();
+			$smethods = $methods; usort($smethods, "_cmp_methods");
+
+			// find methods, and look for their tests
+			$testable = 0;
+			$tested   = 0;
+			foreach( $smethods as $m) {
+				if ( ! $m->isConstructor() ) {
+					if( !strpos($m->name,"test_",0) && $m->name != "test" && $m->name != "__get"  ) {
+						$testable++;
+						$fnd = false;
+						foreach( $smethods as $mt) {
+
+							if( $mt->name == "test_".$m->name ) {
+								$tested++;
+								//$bod.= "<div> found test for ".$m->name."</div>";
+								$this->{"test_".$_model}->{$mt->name}();
+								$bod .= "<h5>".$m->name."</h3>\n";
+								$bod .= "<div class='container'>".$this->unit->report()."</div>\n";
+								$this->unit->results = array();
+								$fnd = true;
+								break;
+							}
+						}
+						//if ( $fnd == false ) $bod.= "<div> no test for ".$m->name."</div>";
+					}
+				}
+			}
+
+			$bod .= "<div>Tested ".$tested." of ".$testable." methods</div>";
+		}
+
+		$this->pdata["title"] = 'Unit Test : '.$_model;
+		$this->pdata["body"] = $bod;
+		echo $this->applyTemplate();
+	}
+
 
 	protected function applyTemplate() {
 		$js = 
