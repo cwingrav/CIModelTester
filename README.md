@@ -31,6 +31,15 @@ class MyModelTester extends CIModelTester {
 * That's it!
 
 
+## Unit Testing Models
+
+You can write CodeIngniter unit tests for your models and run them via this interface. Open the model and click 'run unit tests'. It will load the APPDATA/models/tests/test_[modelname].php file and execute the tests. If this file does not exist, it gives you sample data to get started writing one and tells you the directory location to put it..
+
+### Testing Methods Run
+This runs a generic test and searches for method-specific tests.
+* test()
+* test_method()
+
 ## How it works?
 
 It sends an Ajax call to CIModelTester->model_test and returns the results in JSON to your page. Nifty.
