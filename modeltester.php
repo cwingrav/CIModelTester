@@ -260,9 +260,16 @@ class CIModelTester extends CI_Controller {
 							if( $mt->name == "test_".$m->name ) {
 								$tested++;
 								//$bod.= "<div> found test for ".$m->name."</div>";
-								$this->{"test_".$_model}->{$mt->name}();
-								$bod .= "<h5>".$m->name."</h3>\n";
-								$bod .= "<div class='container'>".$this->unit->report()."</div>\n";
+								$ret = $this->{"test_".$_model}->{$mt->name}();
+								$bod .= "<div class='container'>\n";
+								$bod .= "  <div class='row'>\n";
+								$bod .= "    <div class='thumbnail'>\n";
+								$bod .= "      <h4>".$m->name." Tested</h4>\n";
+								$bod .= "      <div>".$this->unit->report()."</div>\n";
+								$bod .= "      <div>".$ret."</div>\n";
+								$bod .= "    </div>\n";
+								$bod .= "  </div>\n";
+								$bod .= "</div>\n";
 								$this->unit->results = array();
 								$fnd = true;
 								break;
@@ -273,7 +280,7 @@ class CIModelTester extends CI_Controller {
 				}
 			}
 
-			$bod .= "<div>Tested ".$tested." of ".$testable." methods</div>";
+			$bod .= "<div class='well'>Tested ".$tested." of ".$testable." methods</div>";
 		}
 
 		$this->pdata["title"] = 'Unit Test : '.$_model;
