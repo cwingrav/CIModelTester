@@ -5,7 +5,7 @@ function _cmp_methods($a, $b)
 
 class CIModelTester extends CI_Controller {
 
-    public function __construct($_mymodels,$_testinglink = null,$_isvalid = true) {
+    public function __construct($_mymodels = array(),$_testinglink = null,$_isvalid = true) {
         parent::__construct();
 
 		$this->testinglink = $_testinglink;
@@ -21,6 +21,16 @@ class CIModelTester extends CI_Controller {
 			$this->load->library('form_validation');
 
 			$this->mymodels = $_mymodels;
+
+			// load all in directory if null
+			if ( sizeof($this->mymodels) == 0 ) {
+				$this->load->helper('directory');
+				$map = directory_map(APPPATH.'models/');
+
+				$this->recursivelyAddModelsFromMap($map);
+			}
+
+			log_message('debug','Loading models : '.print_r($this->mymodels,true));
 
 			foreach ( $this->mymodels as $m ) {
 				$this->load->model($m);
@@ -42,7 +52,8 @@ class CIModelTester extends CI_Controller {
 			foreach( $this->mymodels as $m ) {
 				$bod .= "<div class='col-xs-6 col-sm-4 col-md-3 well'>";
 				$bod .= "  <div class='lead'><a href='/index.php/".get_class($this)."/model/".$m."'>".$m."</a></div>";
-				$bod .= "  <div><a href='/index.php/test/Test_".$m."' class='btn btn-default'>run unit tests</a></div>";
+				//$bod .= "  <div><a href='/index.php/test/Test_".$m."' class='btn btn-default'>run unit tests</a></div>";
+				$bod .= "  <div><a href='/index.php/".get_class($this)."/run_unit_tests/".$m."' class='btn btn-info btn-xs' >run unit tests</a></div>";
 				$bod .= "</div>";
 			}
 			$bod .= "</div>";
@@ -112,7 +123,7 @@ class CIModelTester extends CI_Controller {
 
 			// Add navigation
 			$mtext   =  "<div class='row well'>".
-						"  <a class='btn btn-info btn-xs' href='/index.php/".get_class($this)."'>&lt; back </a>";
+						"  <a class='btn btn-info btn-xs' href='javascript:history.go(-1)'>&lt; back </a>";
 			if ( $this->testinglink != null ) {
 						$mtext .= "  <a href='".$this->testinglink."' class='btn btn-info btn-xs'>run tests</a>";
 			}
@@ -205,18 +216,33 @@ class CIModelTester extends CI_Controller {
     }
 
 	// Call the test method on the model
+	// srcmodel = foo/bar_model              <-file
+	// testmodel = foo/tests/test_bar_model  <-file
+	// varmodel = bar_model        <-CI name ex. $this->bar_model
+	// tvarmodel = test_bar_model  <-CI name ex. $this->test_bar_model
 	public function run_unit_tests($_model) {
+		$args = func_get_args();
+		$srcmodel = implode('/', $args); 
+		$varmodel = $args[sizeof($args)-1]; // the name of the model in $this->
+		$tvarmodel = "test_$varmodel";
+
+		// create test model name by inserting "tests/test_" before the model name
+		$testmodel = $args;
+		$testmodel[sizeof($testmodel)-1] = "tests/test_$varmodel";
+		$testmodel = implode('/', $testmodel); // turn array to string
+		log_message('debug',"testmodel is '$testmodel' and srcmodel is '$srcmodel' and model name is $varmodel");
+
 		$bod = "";
-		$bod .= "<a class='btn btn-info btn-xs' href='/index.php/MyModelTester/model/".$_model."'>&lt; back </a>";
+		$bod .= "<a class='btn btn-info btn-xs' href='javascript:history.go(-1)'>&lt; back </a>";
 		if ( ENVIRONMENT != "testing" ) {
 			$bod .= "<div class='lead'>Not in testing environment. Currently set to ".ENVIRONMENT.".</div>";
-		} else if( ! file_exists(APPPATH."models/tests/test_$_model.php") ){
-			$bod .= "<div class='lead'>No testing model. create a model in '".APPPATH."models/tests/test_$_model.php'</div>";
+		} else if( ! file_exists(APPPATH."models/$testmodel.php") ){ //file_exists(APPPATH."models/tests/test_$model.php") 
+			$bod .= "<div class='lead'>No testing model. create a model in '".APPPATH."models/$testmodel.php'</div>";
 			$bod .= "<h3>Example Code:</h3>";
 			$bod .= "<pre><code>".
 "&lt;?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');\n".
 "\n".
-"class test_".$_model." extends ".$_model."\n".
+"class ".$testmodel." extends ".$srcmodel."\n".
 "{\n".
 "    function __construct() { parent::__construct(); }\n".
 "\n".
@@ -235,21 +261,22 @@ class CIModelTester extends CI_Controller {
 "</pre></code>";
 		} else {
 			$this->load->library("unit_test");
-			$rp = $this->load->model("tests/test_".$_model);
+			$rp = $this->load->model($testmodel);
 
 			// generic test
 			$bod .= "<h3>Generic Test</h3>\n";
-			$this->{"test_".$_model}->test();
-			$bod .= "<div class='container'>".$this->unit->report()."</div>";
+			$rr = $this->{$tvarmodel}->test(); //$rr = $this->{$testmodel}->test();
+			$bod .= "<div class='container thumbnail'><div>".$this->unit->report()."</div><div>$rr</div></div>";
 			$this->unit->results = array();
 
-			$rc = new ReflectionClass(end(explode('/',"test_".$_model)));
+			$rc = new ReflectionClass(end(explode('/',$testmodel)));
 			$methods = $rc->getMethods();
 			$smethods = $methods; usort($smethods, "_cmp_methods");
 
 			// find methods, and look for their tests
 			$testable = 0;
 			$tested   = 0;
+			$tested_failed = 0;
 			foreach( $smethods as $m) {
 				if ( ! $m->isConstructor() ) {
 					if( !strpos($m->name,"test_",0) && $m->name != "test" && $m->name != "__get"  ) {
@@ -260,17 +287,23 @@ class CIModelTester extends CI_Controller {
 							if( $mt->name == "test_".$m->name ) {
 								$tested++;
 								//$bod.= "<div> found test for ".$m->name."</div>";
-								$ret = $this->{"test_".$_model}->{$mt->name}();
+								$ret = $this->{$tvarmodel}->{$mt->name}();
+								$r_pass = 0; $r_tot = 0; foreach ( $this->unit->result() as $rs ) { if ( $rs['Result'] == 'Passed') {$r_pass++;} $r_tot++; }
+								if ( $r_pass != $r_tot ) $tested_failed++;
 								$bod .= "<div class='container'>\n";
 								$bod .= "  <div class='row'>\n";
 								$bod .= "    <div class='thumbnail'>\n";
-								$bod .= "      <h4>".$m->name." Tested</h4>\n";
-								$bod .= "      <div>".$this->unit->report()."</div>\n";
-								$bod .= "      <div>".$ret."</div>\n";
+								$bod .= "      <h4><a href='/index.php/MyModelTester/model/".$srcmodel."#method_".$m->name."' alt='link to method'>".$m->name."</a> Tested</h4>\n";
+								//$bod .= "      <div><pre><code>".print_r($this->unit->result(),true)."</code></pre></div>\n";
+								$bod .= "      <div>result: [".$r_pass."/".$r_tot."] ".($r_pass==$r_tot ? 'passed':'failed')." <a onclick='toggleDiv(\"".$mt->name."\"); return false;' class='btn btn-info btn-xs'>results</a></div>";
+								$bod .= "      <div id='".$mt->name."' class='".($r_pass==$r_tot ? 'hidden':'')."'>";
+								$bod .= "        <div>".$this->unit->report()."</div>\n";
+								$bod .= "        <div><h5>returned:</h5>".$ret."</div>\n";
+								$bod .= "      </div>\n";
 								$bod .= "    </div>\n";
 								$bod .= "  </div>\n";
 								$bod .= "</div>\n";
-								$this->unit->results = array();
+								$this->unit->results = array(); // reset it
 								$fnd = true;
 								break;
 							}
@@ -280,10 +313,12 @@ class CIModelTester extends CI_Controller {
 				}
 			}
 
-			$bod .= "<div class='well'>Tested ".$tested." of ".$testable." methods</div>";
+			$bod .= "<div class='well'>Tested ".$tested." of ".$testable." methods with $tested_failed failures</div>";
+			$bod .= "<script>function toggleDiv(_divid) { $('#'+_divid).toggleClass('hidden');} </script>";
+			$this->{$tvarmodel}->onExit();
 		}
 
-		$this->pdata["title"] = 'Unit Test : '.$_model;
+		$this->pdata["title"] = 'Unit Test : '.$srcmodel;
 		$this->pdata["body"] = $bod;
 		echo $this->applyTemplate();
 	}
@@ -334,5 +369,23 @@ class CIModelTester extends CI_Controller {
 			"</body>".
 			"</html>";
 		return $retval;
+	}
+
+	protected function recursivelyAddModelsFromMap($_map,$_path = "") {
+		log_message('debug',"map ($_path): ".print_r($_map,true));
+		foreach ( $_map as $k=>$m ) {
+
+			log_message('debug',"Checking ($k) (".($k==='tests').") (".print_r($m,true).") ");
+			if ( $k === 'tests' ) { log_message('debug','   ...skip'); } // skip
+			else if ( is_array($m) ) { log_message('debug',"  ...recurse on $k");  $this->recursivelyAddModelsFromMap($m,$_path.$k."/"); }
+			else {
+				$v = strrpos($m,"_model.php",-10);
+				log_message('debug',"  checking ($v)");
+				if ( $v !== false ) {
+					log_message('debug',"   - Found $_path$m");
+					array_push($this->mymodels,rtrim($_path.$m,".php"));
+				}
+			}
+		}
 	}
 }
