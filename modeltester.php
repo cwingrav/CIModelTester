@@ -46,6 +46,13 @@ class CIModelTester extends CI_Controller {
 
     }
 
+
+
+	// --------------------------------------------------------------------- 
+	// index()
+	// --------------------------------------------------------------------- 
+	// Display models to interact with
+	// --------------------------------------------------------------------- 
     public function index() {
 		if ( $this->isvalid ) {
 			$bod  = "";
@@ -81,6 +88,22 @@ class CIModelTester extends CI_Controller {
 
     }
 
+
+	// --------------------------------------------------------------------- 
+	// model_test()
+	// --------------------------------------------------------------------- 
+	// The magic. This function is called via Ajax to run the model with the 
+	// specified parameters. Parameters that are arrays can be sent. 
+	//    ex. parm0=>"[1,2]" sends array(1,2) as the 1st parameter 
+	// It returns the results in JSON.
+	// 
+	//   $_POST is used:
+	//      model -> model to call
+	//      fn -> method name
+	//      paramN -> values to pass to that method, with N being a number 
+	//                starting at 0 and incrementing. 
+	//                ex. param0=>1st param, param1=>2nd param, etc.
+	// --------------------------------------------------------------------- 
     public function model_test() {
 		if ( $this->isvalid ) {
 			log_message("debug","model_test called with post data:");
@@ -128,6 +151,17 @@ class CIModelTester extends CI_Controller {
 
 
 
+	// --------------------------------------------------------------------- 
+	// model($_model) 
+	// --------------------------------------------------------------------- 
+	// The working path. This loads the methods of the model and let's you 
+	// use them. $_model is an unused variable since this uses variable 
+	// arguments in true CodeIgniter fashion.
+	//
+	//   ex. http://<project>/index.php/CIModelTester/model/dir1/mymodel_model#method_getData
+	//    This uses the model in APPPATH."/models/dir1/mymodel_model.php". 
+	//    This also scroll to the method "getData" on the generated webpage.
+	// --------------------------------------------------------------------- 
     public function model($_model)
     {
 		$model = implode('/', func_get_args());
@@ -240,11 +274,17 @@ class CIModelTester extends CI_Controller {
 		echo $this->applyTemplate();
     }
 
-	// Call the test method on the model
-	// srcmodel = foo/bar_model              <-file
-	// testmodel = foo/tests/test_bar_model  <-file
-	// varmodel = bar_model        <-CI name ex. $this->bar_model
-	// tvarmodel = test_bar_model  <-CI name ex. $this->test_bar_model
+	// --------------------------------------------------------------------- 
+	// run_unit_tests($_model)
+	// --------------------------------------------------------------------- 
+	// This calls the unit tests on the model. 
+	//  (see method 'model' above regarding $_model)
+	//
+	//  srcmodel = foo/bar_model              <-file
+	//  testmodel = foo/tests/test_bar_model  <-file
+	//  varmodel = bar_model        <-CI name ex. $this->bar_model
+	//  tvarmodel = test_bar_model  <-CI name ex. $this->test_bar_model
+	// --------------------------------------------------------------------- 
 	public function run_unit_tests($_model) {
 		$args = func_get_args();
 		$srcmodel = implode('/', $args); 
@@ -359,6 +399,12 @@ class CIModelTester extends CI_Controller {
 
 
 
+	// --------------------------------------------------------------------- 
+	// applyTemplate
+	// --------------------------------------------------------------------- 
+	// A hack at applying a standardized page look and feel. Needs a real
+	// template like Mustache, but this method means only 1 file to install!
+	// --------------------------------------------------------------------- 
 	protected function applyTemplate() {
 		$js = 
 			"function callModelTest(_d,_fn) {".
@@ -406,6 +452,13 @@ class CIModelTester extends CI_Controller {
 		return $retval;
 	}
 
+
+	// --------------------------------------------------------------------- 
+	// recursivelyAddModelsFromMap
+	// --------------------------------------------------------------------- 
+	//  Looks through you APPPATH."/models" directory looking for 
+	//  "*_model.php" files to load. You don't need to call.
+	// --------------------------------------------------------------------- 
 	protected function recursivelyAddModelsFromMap($_map,$_path = "") {
 		//log_message('debug',"map ($_path): ".print_r($_map,true));
 		foreach ( $_map as $k=>$m ) {
@@ -424,6 +477,14 @@ class CIModelTester extends CI_Controller {
 		}
 	}
 
+
+
+	// --------------------------------------------------------------------- 
+	// cClearFix
+	// --------------------------------------------------------------------- 
+	// A hack to Boostrap so the columns in a row are the same height. See,
+	// I care about how things look...
+	// --------------------------------------------------------------------- 
 	protected function cClearFix($_ccount,$_xs,$_sm,$_md,$_lg) {
 		$cf="";
 		if ( $_ccount != 0 ) {
