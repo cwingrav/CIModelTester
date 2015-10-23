@@ -46,6 +46,10 @@ This runs a generic test and searches for method-specific tests.
 * onExit() - called at the end of running your model. 
 * test_\[method\]() - the test method for you to implement. Returned values are displayed after the CodeIgniter unit test information. Use the pack_ret function to format any data in this method for return.
 
+### Default Unit Test
+Here's what the suggested unit test is for my 'content_model.php' file, where I wrote one empty test for the method test_getUnderReviewStats.
+<img src='imgs/unit_test_output.png' width='300px' />
+
 ## How it works?
 
 It sends an Ajax call to CIModelTester->model_test and returns the results in JSON to your page. Nifty.
