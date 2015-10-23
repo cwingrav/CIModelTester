@@ -2,7 +2,7 @@
 A CodeIgniter interactive model tester web interface. Directly call your model functionality for testing and debugging.
 
 ## Usage
-Load your controller into your browser: `http://<mydomain>/index.php/MyModelTester`. You'll see the main CIModelTester page.
+Load in your browser: `http://<mydomain>/index.php/CIModelTester`. You'll see the main CIModelTester page.
 
 <img src='imgs/mainpage.png' width='300px' />
 
@@ -18,7 +18,12 @@ NOTE: If you use proper code documentation, it even prints to comments!
 
 
 ## Installation
-* Copy `modeltester.php` into your CodeIgnite 'libraries' folder. 
+
+### Quick Install
+* Put `modeltester.php` into your controllers directory.
+
+### For Tailored Use
+* Put `modeltester.php` into your CodeIgnite 'libraries' folder. 
 * Create a new controller `MyModelTester.php` in your 'controllers' folder, passing in an array of the models you wish to test. ex "`array('model1_model','model2_model')`".
 ```
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
@@ -28,16 +33,17 @@ class MyModelTester extends CIModelTester {
         parent::__construct(array(...my controllers here...));}}
 ?>
 ```
-* That's it!
+* That's it! Load it up at http://<mydomain>/index.php/MyModelTester
 
 
 ## Unit Testing Models
 
-You can write CodeIngniter unit tests for your models and run them via this interface. Open the model and click 'run unit tests'. It will load the APPDATA/models/tests/test_[modelname].php file and execute the tests. If this file does not exist, it gives you sample data to get started writing one and tells you the directory location to put it..
+You can write CodeIngniter unit tests for your models and run them via this interface. Open the model and click 'run unit tests'. It will load the APPDATA/models/tests/test_[modelname].php file and execute the tests. If this file does not exist, it gives you sample data to get started writing one and tells you the directory location to put it. (NOTE: For models in subdirectories, create your 'tests' directory in those subdirectories. Nifty huh...)
 
 ### Testing Methods Run
 This runs a generic test and searches for method-specific tests.
 * test()
+* onExit()
 * test_\[method\]()
 
 ## How it works?
