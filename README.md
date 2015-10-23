@@ -42,9 +42,9 @@ You can write CodeIngniter unit tests for your models and run them via this inte
 
 ### Testing Methods Run
 This runs a generic test and searches for method-specific tests.
-* test()
-* onExit()
-* test_\[method\]()
+* test()   - always called.
+* onExit() - called at the end of running your model. 
+* test_\[method\]() - the test method for you to implement. Returned values are displayed after the CodeIgniter unit test information. Use the pack_ret function to format any data in this method for return.
 
 ## How it works?
 

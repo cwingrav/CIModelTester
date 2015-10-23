@@ -3,6 +3,9 @@
 function _cmp_methods($a, $b)
 { if ($a->name == $b->name) { return 0; } return ($a->name < $b->name) ? -1 : 1; }
 
+function pack_ret($_ret) { return "<div><pre style='font-size: 8px;'><code>".print_r($_ret,true)."</code></pre></div>"; }
+
+
 class CIModelTester extends CI_Controller {
 
 	protected $js_togglediv = "<script>function toggleDiv(_divid) { $('#'+_divid).toggle('fast'); } </script>";
