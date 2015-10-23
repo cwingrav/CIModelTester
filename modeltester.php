@@ -5,6 +5,8 @@ function _cmp_methods($a, $b)
 
 class CIModelTester extends CI_Controller {
 
+	protected $js_togglediv = "<script>function toggleDiv(_divid) { $('#'+_divid).toggle('fast'); } </script>";
+
     public function __construct($_mymodels = array(),$_testinglink = null,$_isvalid = true) {
         parent::__construct();
 
@@ -49,12 +51,23 @@ class CIModelTester extends CI_Controller {
 				$bod .= "<div style='margin-bottom: 7px;'><a class='btn btn-info' href='".$this->testinglink."'>testing link</a></div>";
 			}
 			$bod .= "<div class='row well'>";
-			foreach( $this->mymodels as $m ) {
+			foreach( $this->mymodels as $k=>$m ) {
+				$mparts = explode("/",$m);
+				$mname  = $mparts[sizeof($mparts)-1];
+				array_pop($mparts);
+				$mpath  = implode("/",$mparts);
+				if ( $mpath == "" ) $mpath = "&nbsp;";
+				else $mpath .= "/";
+
 				$bod .= "<div class='col-xs-6 col-sm-4 col-md-3 well'>";
-				$bod .= "  <div class='lead'><a href='/index.php/".get_class($this)."/model/".$m."'>".$m."</a></div>";
+				$bod .= "  <div class='' style='margin-bottom: 7px;'><a href='/index.php/".get_class($this)."/model/".$m."'>";
+				$bod .= "    <div class='' style='font-size: 120%;'>".$mname."</div>";
+				$bod .= "    <div><small>".$mpath."</small></div>";
+				$bod .= "  </a></div>";
 				//$bod .= "  <div><a href='/index.php/test/Test_".$m."' class='btn btn-default'>run unit tests</a></div>";
 				$bod .= "  <div><a href='/index.php/".get_class($this)."/run_unit_tests/".$m."' class='btn btn-info btn-xs' >run unit tests</a></div>";
 				$bod .= "</div>";
+				$bod .= $this->cClearFix($k,6,4,3,3);
 			}
 			$bod .= "</div>";
 		} else {
@@ -118,6 +131,7 @@ class CIModelTester extends CI_Controller {
 		log_message('debug',"model:: ".$model);
 		if ( $this->isvalid ) {
 			$rc = new ReflectionClass(end(explode('/',$model)));
+			//log_message('debug',"COMMENTS: ".$rc->getDocComment());
 			$methods = $rc->getMethods();
 			$smethods = $methods; usort($smethods, "_cmp_methods");
 
@@ -135,6 +149,10 @@ class CIModelTester extends CI_Controller {
 			}
 			$mtext   .= "  </div>".
 						"</div>";
+
+			// Class Comments
+			if ( $rc->getDocComment() != "" ) 
+				$mtext .= "<div><pre><div class='lead'><strong style='margin-right: 15px;'>Documentation</strong><a class='btn btn-info btn-xs' onclick='toggleDiv(\"docdiv\");'>toggle doc</a></div><div id='docdiv' style='display:none;'>".$rc->getDocComment()."</div></pre></div>";
 
 			// Add listing of methods, with in-page links to call
 			$mtext .= "<div class='well'>\n";
@@ -169,6 +187,7 @@ class CIModelTester extends CI_Controller {
 			// Add functionality to call each method
 			$mtext .= "<div class='row'>\n";
 			$mid = 1;
+			$k = 0;
 			foreach ($methods as $m ) {
 				if ( ! $m->isConstructor() ) {
 					$mtext .= "\n<div class='col-xs-6 col-sm-4 col-md-4 well'>";
@@ -180,7 +199,7 @@ class CIModelTester extends CI_Controller {
 					$mtext .= "<input type='hidden' name='fn' value='".$m->name."' ></input>";
 					$mtext .= "<input type='hidden' name='model' value='".$model."' ></input>";
 					$dc = $m->getDocComment();
-					if ( $dc !== FALSE ) { $mtext .= "<div style=''><pre><code style='font-size: 60%; line-height: 0px;'>".$dc."</code></pre></div>"; }
+					if ( $dc !== FALSE ) { $mtext .= "<div style='margin-bottom: 7px;'><a class='btn btn-xs btn-info' onclick='toggleDiv(\"doc_method_".$m->name."\"); return false;'>toggle doc</a><pre id='doc_method_".$m->name."' style='display: none;'><code style='font-size: 60%; line-height: 0;'>".join("\n", array_map("ltrim", explode("\n", $dc)))."</code></pre></div>"; }
 					//log_message("debug",print_r($m->getDocComment(),true));
 					$np=0;
 					$mtext .= "<dl class=''>";
@@ -191,7 +210,7 @@ class CIModelTester extends CI_Controller {
 					}
 					$mtext .= "</dl>";
 					$mtext .= "<input name='btn_submit' type='submit' class='btn btn-default' value='Submit' />\n";
-					$mtext .= "<a class='btn btn-default btn-sm' href='javascript:toggleResult(\"#".$m->name."_output\")'>toggle</a>\n";
+					$mtext .= "<a class='btn btn-default btn-sm' href='javascript:toggleDiv(\"".$m->name."_output\")'>toggle</a>\n";
 					$mtext .= "<div class='hide' id='".$m->name."_output'><pre></pre></div>";
 					$mtext .= "<script>$('#form".$mid."').submit(function(_e) { ".
 							  "   var data = $(this).serializeArray(); ".
@@ -199,12 +218,15 @@ class CIModelTester extends CI_Controller {
 					$mtext .= "</fieldset>";
 					$mtext .= "</form>";
 					$mtext .= "</div>\n";
+					$mtext .= $this->cClearFix($k,6,4,4,4);
 
 					$mid++;
+					$k= $k+1;
 				}
 			}
 
 			$mtext .= "</div>\n";
+			$mtext .= $this->js_togglediv;
 
 
 		} else {
@@ -296,7 +318,7 @@ class CIModelTester extends CI_Controller {
 								$bod .= "      <h4><a href='/index.php/MyModelTester/model/".$srcmodel."#method_".$m->name."' alt='link to method'>".$m->name."</a> Tested</h4>\n";
 								//$bod .= "      <div><pre><code>".print_r($this->unit->result(),true)."</code></pre></div>\n";
 								$bod .= "      <div>result: [".$r_pass."/".$r_tot."] ".($r_pass==$r_tot ? 'passed':'failed')." <a onclick='toggleDiv(\"".$mt->name."\"); return false;' class='btn btn-info btn-xs'>results</a></div>";
-								$bod .= "      <div id='".$mt->name."' class='".($r_pass==$r_tot ? 'hidden':'')."'>";
+								$bod .= "      <div id='".$mt->name."' style='".($r_pass==$r_tot ? 'display: none':'')."'>";
 								$bod .= "        <div>".$this->unit->report()."</div>\n";
 								$bod .= "        <div><h5>returned:</h5>".$ret."</div>\n";
 								$bod .= "      </div>\n";
@@ -314,7 +336,7 @@ class CIModelTester extends CI_Controller {
 			}
 
 			$bod .= "<div class='well'>Tested ".$tested." of ".$testable." methods with $tested_failed failures</div>";
-			$bod .= "<script>function toggleDiv(_divid) { $('#'+_divid).toggleClass('hidden');} </script>";
+			$bod .= $this->js_togglediv;
 			$this->{$tvarmodel}->onExit();
 		}
 
@@ -322,6 +344,7 @@ class CIModelTester extends CI_Controller {
 		$this->pdata["body"] = $bod;
 		echo $this->applyTemplate();
 	}
+
 
 
 	protected function applyTemplate() {
@@ -342,7 +365,7 @@ class CIModelTester extends CI_Controller {
 			"		console.log('callModelTest returned '+_data);".
 			"		ff = JSON.parse(_data);".
 			"		$('#'+fn+'_output pre').html(''+JSON.stringify(ff, null, ' ')+'');".
-			"		$('#'+fn+'_output').removeClass('hide');".
+			"		$('#'+fn+'_output').show('fast');".
 			"	});".
 			"}".
 			"function toggleResult(_id) {\n".
@@ -387,5 +410,20 @@ class CIModelTester extends CI_Controller {
 				}
 			}
 		}
+	}
+
+	protected function cClearFix($_ccount,$_xs,$_sm,$_md,$_lg) {
+		$cf="";
+		if ( $_ccount != 0 ) {
+			if ( ($_xs != 0) && ((($_ccount+1) % (12/$_xs)) == 0) ) { $cf .= " visible-xs-block"; }
+			if ( ($_sm != 0) && ((($_ccount+1) % (12/$_sm)) == 0) ) { $cf .= " visible-sm-block"; }
+			if ( ($_md != 0) && ((($_ccount+1) % (12/$_md)) == 0) ) { $cf .= " visible-md-block"; }
+			if ( ($_lg != 0) && ((($_ccount+1) % (12/$_lg)) == 0) ) { $cf .= " visible-lg-block"; }
+		}
+
+		$retval = "";
+		if ( $cf != "" ) { $retval = "<div class='clearfix".$cf."'></div>"; }
+
+		return $retval;
 	}
 }
