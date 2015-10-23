@@ -296,6 +296,7 @@ class CIModelTester extends CI_Controller {
 			$smethods = $methods; usort($smethods, "_cmp_methods");
 
 			// find methods, and look for their tests
+			$usedtestmap = array(); foreach( $smethods as $m) { if( strpos($m->name,"test_",0) !== false  ) $usedtestmap[$m->name] = '0'; }
 			$testable = 0;
 			$tested   = 0;
 			$tested_failed = 0;
@@ -307,6 +308,7 @@ class CIModelTester extends CI_Controller {
 						foreach( $smethods as $mt) {
 
 							if( $mt->name == "test_".$m->name ) {
+								$usedtestmap[$mt->name] = "1";
 								$tested++;
 								//$bod.= "<div> found test for ".$m->name."</div>";
 								$ret = $this->{$tvarmodel}->{$mt->name}();
@@ -335,6 +337,13 @@ class CIModelTester extends CI_Controller {
 				}
 			}
 
+			$bodt = "";
+			foreach($usedtestmap as $k=>$v) {
+				if( $v == 0 ) {
+					$bodt .= "<div>Did you mispell the method '$k' in $testmodel?</div>\n";
+				}
+			}
+			if( $bodt != "" ) $bod .="<div class='alert alert-warning'><h3>Possible Error?</h3><p>$bodt</p></div>\n";
 			$bod .= "<div class='well'>Tested ".$tested." of ".$testable." methods with $tested_failed failures</div>";
 			$bod .= $this->js_togglediv;
 			$this->{$tvarmodel}->onExit();
