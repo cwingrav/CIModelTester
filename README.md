@@ -48,6 +48,7 @@ This runs a generic test and searches for method-specific tests.
 
 ### Default Unit Test
 Here's what the suggested unit test is for my 'content_model.php' file, where I wrote one empty test for the method test_getUnderReviewStats.
+
 <img src='imgs/unit_test_output.png' width='300px' />
 
 ## How it works?
