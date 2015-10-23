@@ -307,15 +307,19 @@ class CIModelTester extends CI_Controller {
 			$bod .= "<pre><code>".
 "&lt;?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');\n".
 "\n".
-"class ".$testmodel." extends ".$srcmodel."\n".
+"class ".$tvarmodel." extends ".$srcmodel."\n".
 "{\n".
 "    function __construct() { parent::__construct(); }\n".
 "\n".
 "    // Generic Model tests\n".
 "    public function test() {\n".
-"        \$this->unit->run(1,1,'Is One One');\n".
+"        \$v = 1;\n".
+"        \$this->unit->run(\$v,1,'v is 1');\n".
+"        \$retval = pack_ret(\$v);\n".
 "        return \$retval;\n".
 "    }\n".
+"\n".
+"    public function onExit() {}\n".
 "\n".
 "    // Tests specific to a method\n".
 "    public function test_[YOUR METHOD]() {\n".
