@@ -32,7 +32,7 @@ class CIModelTester extends CI_Controller {
 				$this->recursivelyAddModelsFromMap($map);
 			}
 
-			log_message('debug','Loading models : '.print_r($this->mymodels,true));
+			//log_message('debug','Loading models : '.print_r($this->mymodels,true));
 
 			foreach ( $this->mymodels as $m ) {
 				$this->load->model($m);
@@ -252,7 +252,7 @@ class CIModelTester extends CI_Controller {
 		$testmodel = $args;
 		$testmodel[sizeof($testmodel)-1] = "tests/test_$varmodel";
 		$testmodel = implode('/', $testmodel); // turn array to string
-		log_message('debug',"testmodel is '$testmodel' and srcmodel is '$srcmodel' and model name is $varmodel");
+		//log_message('debug',"testmodel is '$testmodel' and srcmodel is '$srcmodel' and model name is $varmodel");
 
 		$bod = "";
 		$bod .= "<a class='btn btn-info btn-xs' href='javascript:history.go(-1)'>&lt; back </a>";
@@ -395,17 +395,17 @@ class CIModelTester extends CI_Controller {
 	}
 
 	protected function recursivelyAddModelsFromMap($_map,$_path = "") {
-		log_message('debug',"map ($_path): ".print_r($_map,true));
+		//log_message('debug',"map ($_path): ".print_r($_map,true));
 		foreach ( $_map as $k=>$m ) {
 
-			log_message('debug',"Checking ($k) (".($k==='tests').") (".print_r($m,true).") ");
+			//log_message('debug',"Checking ($k) (".($k==='tests').") (".print_r($m,true).") ");
 			if ( $k === 'tests' ) { log_message('debug','   ...skip'); } // skip
 			else if ( is_array($m) ) { log_message('debug',"  ...recurse on $k");  $this->recursivelyAddModelsFromMap($m,$_path.$k."/"); }
 			else {
 				$v = strrpos($m,"_model.php",-10);
-				log_message('debug',"  checking ($v)");
+				//log_message('debug',"  checking ($v)");
 				if ( $v !== false ) {
-					log_message('debug',"   - Found $_path$m");
+					//log_message('debug',"   - Found $_path$m");
 					array_push($this->mymodels,rtrim($_path.$m,".php"));
 				}
 			}
