@@ -25,6 +25,7 @@ class CIModelTester extends CI_Controller {
 			$this->load->library('form_validation');
 
 			$this->mymodels = $_mymodels;
+			$this->mytestmodels = array();
 
 			// load all in directory if null
 			if ( sizeof($this->mymodels) == 0 ) {
@@ -33,8 +34,10 @@ class CIModelTester extends CI_Controller {
 
 				$this->recursivelyAddModelsFromMap($map);
 			}
+			$this->recursivelyAddTestModelsFromMap($map,false);
 
 			//log_message('debug','Loading models : '.print_r($this->mymodels,true));
+			//log_message('debug','Loading test models : '.print_r($this->mytestmodels,true));
 
 			foreach ( $this->mymodels as $m ) {
 				$this->load->model($m);
@@ -273,23 +276,10 @@ class CIModelTester extends CI_Controller {
 	// --------------------------------------------------------------------- 
 	// This calls the unit tests on the model. 
 	//  (see method 'model' above regarding $_model)
-	//
-	//  srcmodel = foo/bar_model              <-file
-	//  testmodel = foo/tests/test_bar_model  <-file
-	//  varmodel = bar_model        <-CI name ex. $this->bar_model
-	//  tvarmodel = test_bar_model  <-CI name ex. $this->test_bar_model
 	// --------------------------------------------------------------------- 
 	public function run_unit_tests($_model) {
-		$args = func_get_args();
-		$srcmodel = implode('/', $args); 
-		$varmodel = $args[sizeof($args)-1]; // the name of the model in $this->
-		$tvarmodel = "test_$varmodel";
-
-		// create test model name by inserting "tests/test_" before the model name
-		$testmodel = $args;
-		$testmodel[sizeof($testmodel)-1] = "tests/test_$varmodel";
-		$testmodel = implode('/', $testmodel); // turn array to string
-		//log_message('debug',"testmodel is '$testmodel' and srcmodel is '$srcmodel' and model name is $varmodel");
+		$srcmodel = $testmodel = $varmodel = $tvarmodel = "";
+		$this->gennames(null,func_get_args(),$srcmodel,$testmodel,$varmodel,$tvarmodel);
 
 		$bod = "";
 		$bod .= $this->applyNavigationTemplate($srcmodel,'run_unit_tests');
@@ -310,9 +300,8 @@ class CIModelTester extends CI_Controller {
 "\n".
 "    // Generic Model tests\n".
 "    public function test() {\n".
-"        \$v = 1;\n".
+"        \$retval = pack_ret(\$v = 1);\n".
 "        \$this->unit->run(\$v,1,'v is 1');\n".
-"        \$retval = pack_ret(\$v);\n".
 "        return \$retval;\n".
 "    }\n".
 "\n".
@@ -352,12 +341,12 @@ class CIModelTester extends CI_Controller {
 			$testable = 0;
 			$tested   = 0;
 			$tested_failed = 0;
-			foreach( $smethods as $m) {
+			foreach( $methods as $m) {
 				if ( ! $m->isConstructor() ) {
 					if( !strpos($m->name,"test_",0) && $m->name != "test" && $m->name != "__get"  ) {
 						$testable++;
 						$fnd = false;
-						foreach( $smethods as $mt) {
+						foreach( $methods as $mt) {
 
 							if( $mt->name == "test_".$m->name ) {
 								$usedtestmap[$mt->name] = "1";
@@ -504,7 +493,12 @@ class CIModelTester extends CI_Controller {
 		//$retval  = "<div class='container'>";
 		$retval = "<div id='cimt_switchmodel' class='row' style='".($_ishidden?"display:none":"")."'>";
 		$retval .="  <div class='col-xs-12'><h4>Select a Model</h4></div>";
+		$srcmodel = $testmodel = $varmodel = $tvarmodel = "";
 		foreach( $this->mymodels as $k=>$m ) {
+			$hastest = 0;
+			$this->gennames($m,null,$srcmodel,$testmodel,$varmodel,$tvarmodel);
+			foreach($this->mytestmodels as $tm ) { if ( $tm == $testmodel ) { $hastest= 1; break; } }
+
 			$mparts = explode("/",$m);
 			$mname  = $mparts[sizeof($mparts)-1];
 			array_pop($mparts);
@@ -517,7 +511,7 @@ class CIModelTester extends CI_Controller {
 			$retval .= "    <div class='' style='margin-bottom: 7px;'>";
 			$retval .= "      <a class='btn btn-xs btn-info'href='/index.php/".get_class($this)."/".$_screen."/".$m."'>";
 			$retval .= "        <small style='float:left;'>models/".$mpath."</small><br />";
-			$retval .= "        <div class='' sstyle='font-size: 120%;'>".$mname."</div>";
+			$retval .= "        <div class='' sstyle='font-size: 120%;'>".$mname." ".($hastest==1?"<span class='label label-default'>Tests</span>":'')."</div>";
 			$retval .= "      </a>";
 			$retval .= "    </div>";
 			//$retval .= "    <div><a href='/index.php/".get_class($this)."/run_unit_tests/".$m."' class='btn btn-info btn-xs' >run unit tests</a></div>";
@@ -528,6 +522,47 @@ class CIModelTester extends CI_Controller {
 		$retval .= "</div>";
 		//$retval .= "</div>";
 		return $retval;
+	}
+
+
+
+	// --------------------------------------------------------------------- 
+	// modelname2testname(...)
+	// --------------------------------------------------------------------- 
+	// Utility function to compute the test file name.
+	//   $_modelname  - ex. admin/content_model.php
+	//   $_CIparamarray  - from CI's passed parameters, ex. func_get_args()
+	//
+	// Params for $_modelname or $_CIparamarray
+	//   ex. "bar_model", array("bar_model") -> tests/test_bar_model.php
+	//   ex. "foo/bar_model", array("foo","bar_model") -> admin/tests/content_model.php
+	//
+	// Names of models to pass to $CI->load->model(...)
+	//   $_srcmodel  = "foo/bar_model"             <-file
+	//   $_testmodel = "foo/tests/test_bar_model"  <-file
+	//
+	// Names to invoke the models on a CI object 
+	//   $_varmodel  = "bar_model"       <-CI name ex. $this->bar_model
+	//   $_tvarmodel = "test_bar_model"  <-CI name ex. $this->test_bar_model
+	// --------------------------------------------------------------------- 
+	protected function gennames($_modelname,$_CIparamarray,&$_srcmodel,&$_testmodel,&$_varmodel,&$_tvarmodel) {
+
+		// operate on array or modelname 
+		$args = $_CIparamarray;
+		if ( $args == null) { $args = explode("/",$_modelname); } 
+
+		// the name of the model in $this-> 
+		$_varmodel  = $args[sizeof($args)-1]; 
+		$_tvarmodel = "test_".$_varmodel;
+
+		// turn last entry into $_varmodel to make $_srcmodel
+		$args[sizeof($args)-1] = "".$_varmodel;
+		$_srcmodel  = implode('/',$args); // array to string
+
+		// turn last entry into $_tvarmodel to make $_testmodel
+		$args[sizeof($args)-1] = "tests/".$_tvarmodel;
+		$_testmodel = implode('/', $args); // turn array to string
+		//log_message("debug","    : $_srcmodel $_testmodel $_varmodel $_tvarmodel");
 	}
 
 
@@ -561,7 +596,7 @@ class CIModelTester extends CI_Controller {
 	// --------------------------------------------------------------------- 
 	// recursivelyAddModelsFromMap
 	// --------------------------------------------------------------------- 
-	//  Looks through you APPPATH."/models" directory looking for 
+	//  Looks through your APPPATH."/models" directory looking for 
 	//  "*_model.php" files to load. You don't need to call.
 	// --------------------------------------------------------------------- 
 	protected function recursivelyAddModelsFromMap($_map,$_path = "") {
@@ -575,6 +610,26 @@ class CIModelTester extends CI_Controller {
 		}
 	}
 
+
+	// --------------------------------------------------------------------- 
+	// recursivelyAddTestModelsFromMap
+	// --------------------------------------------------------------------- 
+	//  Looks through your APPPATH."/models" directory looking for 
+	//  "tests/test_*_model.php" files to load. You don't need to call.
+	// --------------------------------------------------------------------- 
+	protected function recursivelyAddTestModelsFromMap($_map,$_parentistest,$_path = "") {
+		foreach ( $_map as $k=>$m ) {
+			if ( $k === 'tests') { $this->recursivelyAddTestModelsFromMap($m,true,$_path.$k."/"); } // recurse
+			else if ( is_array($m) ) { $this->recursivelyAddTestModelsFromMap($m,false,$_path.$k."/"); } // recurse
+			else {
+				if ( $_parentistest ) {
+					$v = strrpos($m,"_model.php",-10);
+					$vv = strrpos($m,"test_",0);
+					if ( $v !== false && $vv !== false ) { array_push($this->mytestmodels,rtrim($_path.$m,".php")); }
+				}
+			}
+		}
+	}
 
 
 	// --------------------------------------------------------------------- 
