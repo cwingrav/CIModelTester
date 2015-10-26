@@ -10,7 +10,7 @@ Then, click on a model to see the model page.
 
 <img src='imgs/modelpage.png' width='300px' />
 
-From here, type parameters into the fields to pass data to a method.  In the image below, the model `RecData_model` has method `getUserInterests` with one parameter `uid`. When I enter `2`, it returns the one interest of that user and displays the JSON. Note: methods that take arrays can be called with brackets. i.e. [1,2,3] would be equivalent to php's `array(1,2,3)`.
+From here, type parameters into the fields to pass data to a method.  In the image below, the model `RecData_model` has method `getUserInterests` with one parameter `uid`. When I enter `2`, it returns the one interest of that user and displays the return value of the method as JSON (i.e. CIModelTester uses ajax to call your method and passes the data as JSON). Note: methods that take arrays can be called with brackets. i.e. [1,2,3] would be equivalent to php's `array(1,2,3)`.
 
 <img src='imgs/amethod.png' width='300px' />
 
