@@ -186,7 +186,7 @@ class CIModelTester extends CI_Controller {
 			$mtext .= "  <div class='row'><strong>public</strong></div>\n";
 			$mtext .= "  <div class='row'>\n";
 			foreach ($smethods as $m ) {
-				if ( ! $m->isConstructor() && $m->isPublic() ) {
+				if ( (!$m->isConstructor() ) && ($m->name != "__get" ) &&  $m->isPublic() ) {
 					$mtext .= "    <div class='col-xs-6 col-sm-4 col-md-4' style='padding-bottom: 5px;'><a class='' href='#method_".$m->name."'>".$m->name."</a></div>"; } }
 			$mtext .= "  </div>\n";
 
