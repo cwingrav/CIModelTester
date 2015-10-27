@@ -294,14 +294,16 @@ class CIModelTester extends CI_Controller {
 			$bod .= "    <pre><code>".
 "&lt;?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');\n".
 "\n".
+"require_once('LoadTestData.php');\n".
+"\n".
 "class ".$tvarmodel." extends ".$srcmodel."\n".
 "{\n".
 "    function __construct() { parent::__construct(); }\n".
 "\n".
 "    // Generic Model tests\n".
 "    public function test() {\n".
-"        \$retval = pack_ret(\$v = 1);\n".
-"        \$this->unit->run(\$v,1,'v is 1');\n".
+"        \$retval = LoadData1(); // User created function in LoadTestData.php\n".
+"        [GENERIC TESTS]\n".
 "        return \$retval;\n".
 "    }\n".
 "\n".
@@ -309,7 +311,9 @@ class CIModelTester extends CI_Controller {
 "\n".
 "    // Tests specific to a method\n".
 "    public function test_[YOUR METHOD]() {\n".
-"        \$this->unit->run(1,1,'Is One One');\n".
+"        \$retval = LoadData1();\n".
+"        \$retval = pack_ret(\$v = \$this->[YOUR METHOD]());\n".
+"        \$this->unit->run(\$v,[EXPECTEDRESULT],[TEST NAME]);\n".
 "        return \$retval;\n".
 "    }\n".
 "};\n".
@@ -342,9 +346,10 @@ class CIModelTester extends CI_Controller {
 			$tested   = 0;
 			$tested_failed = 0;
 			foreach( $methods as $m) {
-				if ( ! $m->isConstructor() ) {
-					if( !strpos($m->name,"test_",0) && $m->name != "test" && $m->name != "__get"  ) {
-						$testable++;
+				if ( (! $m->isConstructor()) && ($m->name != "__get")   ) {
+					if( (strpos($m->name,"test_",0)!== 0) && $m->name != "test" && $m->name != "__get" && $m->name != 'onExit'  ) {
+						$testable ++;
+						log_message("debug","testable ".$m->name);
 						$fnd = false;
 						foreach( $methods as $mt) {
 
