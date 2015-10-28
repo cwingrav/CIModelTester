@@ -3,7 +3,11 @@
 function _cmp_methods($a, $b)
 { if ($a->name == $b->name) { return 0; } return ($a->name < $b->name) ? -1 : 1; }
 
-function pack_ret($_ret) { return "<div><pre style='font-size: 8px;'><code>".print_r($_ret,true)."</code></pre></div>"; }
+function pack_ret($_ret) { 
+	//$lastresult = end(get_instance()->unit->result());
+	//return "<div><h5>Test: '<i>".$lastresult['Test Name']."</i>'</h5><pre style='font-size: 8px;'><code>".print_r($_ret,true)."</code></pre></div>";
+	return "<div><pre style='font-size: 8px;'><code>".print_r($_ret,true)."</code></pre></div>"; 
+}
 
 
 class CIModelTester extends CI_Controller {
@@ -64,11 +68,18 @@ class CIModelTester extends CI_Controller {
 			}
 			$bod .= "<div class='container'>";
 			$bod .= $this->applySwitchModelTemplate("model");
+
+			// Add link to run all tests
+			$bod .= "<div class='container' style='padding-bottom: 15px;'><div class='row'><h4>Or...</h4>";
+			$bod .= "   <a class='btn btn-xs btn-warning'href='/index.php/".get_class($this)."/run_all_unit_tests/'><h5>run all model tests</h5></a>";
+			$bod .= "</div></div>";
+
 			$bod .= "</div>";
 		} else {
 			$bod = "<div>Your CIModelTester controller is shutting down because your CodeIgniter project is in a non development state.</div>"; }
 		$this->pdata["title"] = "";
 		$this->pdata["body"] = $bod;
+
 		echo $this->applyTemplate();
 
     }
@@ -276,11 +287,16 @@ class CIModelTester extends CI_Controller {
 	// --------------------------------------------------------------------- 
 	// This calls the unit tests on the model. 
 	//  (see method 'model' above regarding $_model)
+	//   $_model - unused variable. This is uses func_get_args() to grab
+	//             the CodeIgniter parameters and treats all the parameters,
+	//             except the last one, as directories to the location of
+	//             the model file, and the last parameter as the model name
+	//             (and thus sans .php).
+	//    ex. array("foo","bar_model") -> file : APPPATH."foo/bar_model.php"
 	// --------------------------------------------------------------------- 
 	public function run_unit_tests($_model) {
 		$srcmodel = $testmodel = $varmodel = $tvarmodel = "";
 		$this->gennames(null,func_get_args(),$srcmodel,$testmodel,$varmodel,$tvarmodel);
-
 		$bod = "";
 		$bod .= $this->applyNavigationTemplate($srcmodel,'run_unit_tests');
 
@@ -320,71 +336,9 @@ class CIModelTester extends CI_Controller {
 "</pre></code>";
 			$bod .= "  </div>";
 			$bod .= "</div>";
-		} else {
-			$this->load->library("unit_test");
-			$rp = $this->load->model($testmodel);
-
-			$bod .= "<div class='container' id='outer_nomethodalert' style='display: none;'>\n".
-				    "  <div class='row'>\n".
-					"    <div class='alert alert-danger alert-dismissible' role='alert' >\n".
-					"      <button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n".
-					"      <div id='nomethodalert'></div></div></div></div>\n";
-
-			// generic test
-			$bod .= "<div class='container'><div class='row'><h3>Generic Test</h3></div></div>\n";
-			$rr = $this->{$tvarmodel}->test(); //$rr = $this->{$testmodel}->test();
-			$bod .= "<div class='container thumbnail'><div>".$this->unit->report()."</div><div>$rr</div></div>";
-			$this->unit->results = array();
-
-			$rc = new ReflectionClass(end(explode('/',$testmodel)));
-			$methods = $rc->getMethods();
-			$smethods = $methods; usort($smethods, "_cmp_methods");
-
-			// find methods, and look for their tests
-			$usedtestmap = array(); foreach( $smethods as $m) { if( strpos($m->name,"test_",0) !== false  ) $usedtestmap[$m->name] = '0'; }
-			$testable = 0;
-			$tested   = 0;
-			$tested_failed = 0;
-			foreach( $methods as $m) {
-				if ( (! $m->isConstructor()) && ($m->name != "__get")   ) {
-					if( (strpos($m->name,"test_",0)!== 0) && $m->name != "test" && $m->name != "__get" && $m->name != 'onExit'  ) {
-						$testable ++;
-						log_message("debug","testable ".$m->name);
-						$fnd = false;
-						foreach( $methods as $mt) {
-
-							if( $mt->name == "test_".$m->name ) {
-								$usedtestmap[$mt->name] = "1";
-								$tested++;
-								$ret = $this->{$tvarmodel}->{$mt->name}();
-								$r_pass = 0; $r_tot = 0; foreach ( $this->unit->result() as $rs ) { if ( $rs['Result'] == 'Passed') {$r_pass++;} $r_tot++; }
-								$bod .= $this->applyUnitTestTemplate($r_pass,$r_tot,$srcmodel,$m->name,$this->unit->report(),$ret);
-								$this->unit->results = array(); // reset it
-								$fnd = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			// Look for methods 'test_*' that were never called. These are probably typos.
-			$bodt = "";
-			foreach($usedtestmap as $k=>$v) {
-				if( $v == 0 ) {
-					$bodt .= "<div>Did you mispell the method '$k' in $testmodel?</div>\n";
-				}
-			}
-			if( $bodt != "" ) $bod .="<div class='alert alert-warning'><h3>Possible Error?</h3><p>$bodt</p></div>\n";
-
-			// Final testing stats
-			$bod .= "<div class='container'><div class='row'><div class='well'>Tested ".$tested." of ".$testable." methods with $tested_failed failures</div></div></div>";
-
-
-			// Call onExit method if it exists
-			if ( method_exists($this->{$tvarmodel},"onExit") ) 
-				$this->{$tvarmodel}->onExit(); 
-
+		} 
+		else { 
+			$bod .= $this->_run_unit_tests($srcmodel,$testmodel,$tvarmodel);
 
 			// script to see if URL hash is a valid method. run client-side and use jquery
 			$bod .= 
@@ -400,9 +354,128 @@ class CIModelTester extends CI_Controller {
 "</script>\n";
 		}
 
-		$this->pdata["title"] = "<span class='label label-primary'>".$srcmodel.":</span> <small>Unit Tests</small>";//'Adder Model';
+		$this->pdata["title"] = "<span class='label label-primary'>".$srcmodel.":</span> <small>Unit Tests</small>";
 		$this->pdata["body"] = $bod;
 		echo $this->applyTemplate();
+	}
+
+	public function run_all_unit_tests() {
+		$srcmodel = $testmodel = $varmodel = $tvarmodel = "";
+		$result = array( 'tested'=>0,'testable'=>0,'failed'=>0,'nummodels'=>0);
+
+		$bod ="";
+		$bod .= "<div class='container'>";
+		$bod .= "  <div class='row'>";
+		foreach($this->mymodels as $mm ) { // $mm -> MyModel
+			$this->gennames($mm,null,$srcmodel,$testmodel,$varmodel,$tvarmodel);
+			//$bod .= "<pre>".print_r($mm,true)." $srcmodel $testmodel $varmodel $tvarmodel</pre>";
+			foreach($this->mytestmodels as $mtm ) { // $mtm -> MyTestModel
+				if ( $mtm == $testmodel ) { // found
+					$bod .= "<div id='mt_$mm'>";
+					$bod .= "  <h2><a href='/index.php/".get_class($this)."/run_unit_tests/".$mm."'>$mm</a></h2>";
+					$bod .= "  <div id='mtresult_$mm' class='well'>";
+					$bod .= $this->_run_unit_tests($srcmodel,$testmodel,$tvarmodel,$result);
+					$bod .= "  </div>";
+					$bod .= "</div>";
+					$result['nummodels']++;
+					break;
+				}
+			}
+		}
+		$bod .= "  </div>";
+		$bod .= "</div>";
+
+		$bod = "<div class='container'><div class='row well'><h3>Outcomes</h3><div class='".($result['failed'] != 0?"bg-danger":"")."'>Tested ".$result['tested']." of ".$result['testable']." methods on ".$result['nummodels']." models with ".$result['failed']." failures.</div></div>\n".$bod;
+		$bod = $this->applyNavigationTemplate($srcmodel,'run_all_unit_tests').$bod;
+
+		$this->pdata["title"] = "<span class='label label-primary'>all_models:</span> <small>Run ALL Model Tests</small>";
+		$this->pdata["body"] = $bod;
+		echo $this->applyTemplate();
+	}
+
+
+	/** --------------------------------------------------------------------- 
+	 * _run_unit_tests
+	 * --------------------------------------------------------------------- 
+	 *   Internal function to generate the output of running a model's test.
+	 * --------------------------------------------------------------------- */
+	protected function _run_unit_tests($_srcmodel,$_testmodel,$_tvarmodel,&$_result = NULL) {
+		$retval = "";
+
+
+		$this->load->library("unit_test");
+		$rp = $this->load->model($_testmodel);
+
+		$retval .= "<div class='container' id='outer_nomethodalert' style='display: none;'>\n".
+				"  <div class='row'>\n".
+				"    <div class='alert alert-danger alert-dismissible' role='alert' >\n".
+				"      <button type='button' class='close' data-dismiss='alert' aria-label='Close'><span aria-hidden='true'>&times;</span></button>\n".
+				"      <div id='nomethodalert'></div></div></div></div>\n";
+
+		// generic test
+		$retval .= "<div class='container'><div class='row'><h3>Generic Test</h3></div></div>\n";
+		$rr = $this->{$_tvarmodel}->test(); //$rr = $this->{$testmodel}->test();
+		$retval .= "<div class='container thumbnail'><div>".$this->unit->report()."</div><div>$rr</div></div>";
+		$this->unit->results = array();
+
+		$rc = new ReflectionClass(end(explode('/',$_testmodel)));
+		$methods = $rc->getMethods();
+		$smethods = $methods; usort($smethods, "_cmp_methods");
+
+		// find methods, and look for their tests
+		$usedtestmap = array(); foreach( $smethods as $m) { if( strpos($m->name,"test_",0) !== false  ) $usedtestmap[$m->name] = '0'; }
+		$testable = 0;
+		$tested   = 0;
+		$tested_failed = 0;
+		foreach( $methods as $m) {
+			if ( (! $m->isConstructor()) && ($m->name != "__get")   ) {
+				if( (strpos($m->name,"test_",0)!== 0) && $m->name != "test" && $m->name != "__get" && $m->name != 'onExit'  ) {
+					$testable ++;
+					log_message("debug","testable ".$m->name);
+					$fnd = false;
+					foreach( $methods as $mt) {
+
+						if( $mt->name == "test_".$m->name ) {
+							$usedtestmap[$mt->name] = "1";
+							$tested++;
+							$ret = $this->{$_tvarmodel}->{$mt->name}();
+							$r_pass = 0; $r_tot = 0; foreach ( $this->unit->result() as $rs ) { if ( $rs['Result'] == 'Passed') {$r_pass++;} $r_tot++; }
+							$retval .= $this->applyUnitTestTemplate($r_pass,$r_tot,$_srcmodel,$m->name,$this->unit->report(),$ret);
+							$this->unit->results = array(); // reset it
+							$fnd = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		// Look for methods 'test_*' that were never called. These are probably typos.
+		$retvalt = "";
+		foreach($usedtestmap as $k=>$v) {
+			if( $v == 0 ) {
+				$retvalt .= "<div>Did you mispell the method '$k' in $_testmodel?</div>\n";
+			}
+		}
+		if( $retvalt != "" ) $retval .="<div class='alert alert-warning'><h3>Possible Error?</h3><p>$retvalt</p></div>\n";
+
+		// Final testing stats
+		$retval .= "<div class='container'><div class='row'><div class='well'>Tested ".$tested." of ".$testable." methods with $tested_failed failures</div></div></div>";
+
+
+		// Call onExit method if it exists
+		if ( method_exists($this->{$_tvarmodel},"onExit") ) 
+			$this->{$_tvarmodel}->onExit(); 
+
+		// increament returned result counts
+		if ( $_result != null ) {
+			$_result['tested']   = $_result['tested']   + $tested;
+			$_result['testable'] = $_result['testable'] + $testable;
+			$_result['failed']   = $_result['failed']   + $tested_failed;
+		}
+		log_message('debug','result '.print_r($_result,true));
+
+		return $retval;
 	}
 
 
@@ -444,7 +517,7 @@ class CIModelTester extends CI_Controller {
 			"<head>".
 			"	<meta charset='utf-8'>".
 			"	<meta name='viewport' content='width=device-width, initial-scale=1' > ".
-			"	<title>CIModelTester: ".$this->pdata['title']."</title>".
+			"	<title>CIModelTester</title>".
 			"	<script type='text/javascript' src='//code.jquery.com/jquery-2.1.3.min.js'></script>".
 			"	<link rel='stylesheet' href='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css' />".
 			"	<script type='text/javascript' src='//maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js'></script>".
@@ -525,6 +598,7 @@ class CIModelTester extends CI_Controller {
 			$retval .= $this->cClearFix($k,6,4,3,3);
 		}
 		$retval .= "</div>";
+
 		//$retval .= "</div>";
 		return $retval;
 	}
@@ -576,6 +650,7 @@ class CIModelTester extends CI_Controller {
 	// Add navigation to top of non-home screens.
 	// --------------------------------------------------------------------- 
 	protected function applyNavigationTemplate($_model,$_screen) {
+		$switchscreen = $_screen;
 		$retval  = "<div class='container well'>";
 		$retval .= "  <div class=''>";
 		$retval .= "    <a class='btn btn-info btn-xs' href='/index.php/CIModelTester'><span class='glyphicon glyphicon-home'></span></a>";
@@ -590,10 +665,17 @@ class CIModelTester extends CI_Controller {
 			case 'run_unit_tests':
 				$retval .= "    <a href='/index.php/".get_class($this)."/model/".$_model."' class='btn btn-primary btn-xs' >call methods</a>";
 				break;
+			case 'run_all_unit_tests':
+				$switchscreen = "run_unit_tests";
+				break;
 			default: log_message('debug',"ERROR: Unknown navigation screen '$_screen'"); break;
 		};
+
+		// Add link to run all tests
+		$retval .= "    <a class='btn btn-xs btn-warning' style='float: right;' href='/index.php/".get_class($this)."/run_all_unit_tests/'>run all model tests</a>";
+
 		$retval .= "  </div>";
-		$retval .= $this->applySwitchModelTemplate($_screen,true);
+		$retval .= $this->applySwitchModelTemplate($switchscreen,true);
 		$retval .= "</div>";
 		return $retval;
 	}
